@@ -53,7 +53,7 @@ public class SampleProducer {
 
     private final KafkaSender<Integer, String> sender;
     private final SimpleDateFormat dateFormat;
-
+    
     public SampleProducer(String bootstrapServers) {
 
         Map<String, Object> props = new HashMap<>();
@@ -72,12 +72,15 @@ public class SampleProducer {
         Flux<RecordMetadata> sendFlux = Flux.range(1,  count)
             .flatMap(i -> sender.send(new ProducerRecord<>(topic, i, "Message_" + i)))
             .doOnError(e-> log.error("Send failed", e));
+        
         sendFlux.subscribe(metadata -> {
+             if (metadata.offset() % 10000 == 0) {
                 System.out.printf("Message sent successfully, topic-partition=%s-%d offset=%d timestamp=%s\n",
                         metadata.topic(),
                         metadata.partition(),
                         metadata.offset(),
                         dateFormat.format(new Date(metadata.timestamp())));
+            	}
                 latch.countDown();
             });
     }
@@ -87,11 +90,11 @@ public class SampleProducer {
     }
 
     public static void main(String[] args) throws Exception {
-        int count = 20;
+        int count = 200000;
         CountDownLatch latch = new CountDownLatch(count);
         SampleProducer producer = new SampleProducer(BOOTSTRAP_SERVERS);
         producer.sendMessages(TOPIC, count, latch);
-        latch.await(10, TimeUnit.SECONDS);
+        latch.await(20, TimeUnit.SECONDS);
         producer.close();
     }
 }

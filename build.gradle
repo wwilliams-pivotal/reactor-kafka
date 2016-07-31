@@ -131,5 +131,7 @@ project(':reactor-kafka-samples') {
         testCompile "org.springframework:spring-test:$springVersion"
         testCompile "org.springframework.retry:spring-retry:$springRetryVersion"
         testCompile "org.assertj:assertj-core:$assertjVersion"
+        testCompile 'org.springframework.data:spring-data-geode:1.0.0.APACHE-GEODE-INCUBATING-M2'
+
     }
 }

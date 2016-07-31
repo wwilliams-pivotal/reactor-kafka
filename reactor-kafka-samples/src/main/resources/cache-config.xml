@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:gfe="http://www.springframework.org/schema/gemfire"
+       xsi:schemaLocation="http://www.springframework.org/schema/gemfire http://www.springframework.org/schema/gemfire/spring-gemfire.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+    <gfe:cache properties-ref="gemfire-props"/>
+
+
+    <!-- GemFire -->
+    <util:properties id="gemfire-props">
+        <prop key="log-level">warn</prop>
+
+        <!-- <prop key="security-client-dhalgo">AES:128</prop> -->
+        <prop key="mcast-port">0</prop>
+    </util:properties>
+
+    <gfe:transaction-manager id="gemfireTransactionManager"
+                             cache-ref="gemfireCache" />
+
+
+    <gfe:client-cache id="gemfireCache" properties-ref="gemfire-props">
+    </gfe:client-cache>
+
+    <gfe:pool id="opssuite-pool"
+              read-timeout="300000"
+              min-connections="20">
+        <gfe:locator host="localhost" port="10334" />
+    </gfe:pool>
+
+
+    <gfe:client-region id="regionARegion" name="regionA"
+                       shortcut="PROXY" pool-name="opssuite-pool">
+    </gfe:client-region>
+
+    <bean id="regionATemplate" class="org.springframework.data.gemfire.GemfireTemplate" scope="prototype">
+        <property name="region" ref="regionARegion" />
+    </bean>
+
+
+</beans>
