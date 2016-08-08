@@ -36,7 +36,7 @@ subprojects {
 
     apply plugin: 'eclipse'
     apply plugin: 'idea'
-    apply plugin: 'checkstyle'
+//    apply plugin: 'checkstyle'
     apply plugin: 'java'
 
     sourceCompatibility = targetCompatibility = 1.8
@@ -54,10 +54,10 @@ subprojects {
         }
     }
 
-    checkstyle {
-        configFile = new File(rootDir, "checkstyle/checkstyle.xml")
-    }
-    test.dependsOn('checkstyleMain', 'checkstyleTest')
+//    checkstyle {
+//        configFile = new File(rootDir, "checkstyle/checkstyle.xml")
+//    }
+//    test.dependsOn('checkstyleMain', 'checkstyleTest')
 
     task srcJar(type: Jar) {
         classifier = 'sources'
@@ -131,7 +131,7 @@ project(':reactor-kafka-samples') {
         testCompile "org.springframework:spring-test:$springVersion"
         testCompile "org.springframework.retry:spring-retry:$springRetryVersion"
         testCompile "org.assertj:assertj-core:$assertjVersion"
-        testCompile 'org.springframework.data:spring-data-geode:1.0.0.APACHE-GEODE-INCUBATING-M2'
-
+        compile "org.springframework.data:spring-data-gemfire:1.8.2.RELEASE"
+        compile "org.springframework:spring-context-support:4.1.6.RELEASE"
     }
 }

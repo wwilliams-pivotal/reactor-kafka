@@ -90,11 +90,11 @@ public class SampleProducer {
     }
 
     public static void main(String[] args) throws Exception {
-        int count = 200000;
+        int count = 2000000;
         CountDownLatch latch = new CountDownLatch(count);
         SampleProducer producer = new SampleProducer(BOOTSTRAP_SERVERS);
         producer.sendMessages(TOPIC, count, latch);
-        latch.await(20, TimeUnit.SECONDS);
+        latch.await(60, TimeUnit.SECONDS);
         producer.close();
     }
 }

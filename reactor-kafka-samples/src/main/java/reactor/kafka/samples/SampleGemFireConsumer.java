@@ -17,6 +17,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -28,8 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.data.gemfire.GemfireTemplate;
 
+import com.gemstone.gemfire.cache.Region;
 import com.gemstone.gemfire.internal.util.StopWatch;
 
 import reactor.core.Cancellation;
@@ -48,7 +49,7 @@ import reactor.kafka.KafkaFlux;
  *   <li> Shutdown Kafka server and Zookeeper when no longer required
  * </ol>
  */
-public class SampleGemFireConsumer {
+public class SampleGemFireConsumer implements Consumer {
 
     private static final Logger log = LoggerFactory.getLogger(SampleGemFireConsumer.class.getName());
 
@@ -59,13 +60,19 @@ public class SampleGemFireConsumer {
     private final SimpleDateFormat dateFormat;
 
     ApplicationContext context = new ClassPathXmlApplicationContext("cache-config.xml");
-    GemfireTemplate region = (GemfireTemplate) context.getBean("regionATemplate");
-    private static int recordCount = 0;
-    private static StopWatch sw = new StopWatch();
+    @SuppressWarnings("rawtypes")
+    Region region = (Region) context.getBean("regionARegion");
+    private static long recordCount = 0;
+
+    @SuppressWarnings("unchecked")
+    private Stream2MicroBatch reactiveGemFireWriter= new Stream2MicroBatch(region, this);
+    private boolean isFirstTiming = true;
+    private long firstTimingMillis = 0L;
 
     
     public SampleGemFireConsumer(String bootstrapServers) {
 
+      System.out.println("In SampleGemFireConsumer");
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ConsumerConfig.CLIENT_ID_CONFIG, "sample-consumer");
@@ -77,9 +84,11 @@ public class SampleGemFireConsumer {
         fluxConfig = new FluxConfig<>(props);
 
         dateFormat = new SimpleDateFormat("HH:mm:ss:SSS z dd MMM yyyy");
+        System.out.println("Exit SampleGemFireConsumer");
     }
 
     public Cancellation consumeMessages(String topic, CountDownLatch latch) {
+      System.out.println("In consumeMessages");
 
         KafkaFlux<Integer, String> kafkaFlux =
                 KafkaFlux.listenOn(fluxConfig, Collections.singleton(topic))
@@ -87,46 +96,75 @@ public class SampleGemFireConsumer {
                          .doOnPartitionsRevoked(partitions -> log.debug("onPartitionsRevoked {}", partitions));
  
  
-        sw.start();
+        
+ 
+        System.out.println("Exit consumeMessages");
+
         return kafkaFlux.subscribe(message -> {
-                ConsumerOffset offset = message.consumerOffset();
+               ConsumerOffset offset = message.consumerOffset();
                 ConsumerRecord<Integer, String> record = message.consumerRecord();
                 
+               
 				/*
 				 * Write to GemFire
 				 */
-                recordCount++;
-                Integer recordKey = record.key() % 100;
-                region.put(recordKey.toString(), record.value());
-                
-                if (record.key() % 10000 == 0) {
-	                System.out.printf("Received message: topic-partition=%s offset=%d timestamp=%s key=%d value=%s rate=%s\n",
-	                        offset.topicPartition(),
-	                        offset.offset(),
-	                        dateFormat.format(new Date(record.timestamp())),
-	                        record.key(),
-	                        record.value(),
-	                        recordCount / (sw.elapsedTimeMillis() / 1000));
+          recordCount++;
+          if (isFirstTiming) {
+//                  sw.start();
+            firstTimingMillis = System.currentTimeMillis();
+            isFirstTiming = false;
+          }
+//          Integer recordKey = record.key() % 100;
+          reactiveGemFireWriter.put(record.key().toString(), record.value());
+          if (record.key() % 10000 == 0) {
+            long elapsedMillis = System.currentTimeMillis() - firstTimingMillis;
+            double throughputRate = recordCount * 1000 / elapsedMillis;
+            System.out.printf("Received message: topic-partition=%s offset=%d timestamp=%s key=%d value=%s rate=%s count=%d millis=%d\n",
+                    offset.topicPartition(),
+                    offset.offset(),
+                    dateFormat.format(new Date(record.timestamp())),
+                    record.key(),
+                    record.value(),
+                    throughputRate + "/sec",
+                    recordCount,
+                    elapsedMillis);
+//	                        recordCount / (sw.elapsedTimeMillis() / 1000));
 //			                recordCount,
 //			                sw.elapsedTimeMillis());
-	                }
-                latch.countDown();
-            });
+            }
+            latch.countDown();
+        });
+    }
+    
+    public void dispose() {
+      reactiveGemFireWriter.dispose();
+    }
+    
+    /**
+     * This callback is where you need to record the keys that have been written.
+     * In this way you do not replay these keys if you have to replay.
+     */
+    public void callback(Set<String> keysWritten) {
+      System.out.println("Wrote " + keysWritten.size() + " records");
     }
 
     public static void main(String[] args) throws Exception {
-        int count = 200000;
+        int count = 2000000;
         CountDownLatch latch = new CountDownLatch(count);
         SampleGemFireConsumer consumer = new SampleGemFireConsumer(BOOTSTRAP_SERVERS);
         
-        StopWatch sw = new StopWatch(true);
-        
+        StopWatch sw = new StopWatch();
+        sw.start();
         Cancellation cancellation = consumer.consumeMessages(TOPIC, latch);
-        System.out.println("Hit Latch"); 
-        latch.await(120, TimeUnit.SECONDS);
         System.out.println("Count=" + recordCount + "; ms=" + sw.elapsedTimeMillis() + "; avg=" +  (double)recordCount / sw.elapsedTimeMillis() * 1000 + "/sec"); 
-        sw.stop();
-        cancellation.dispose();
-    }
+        System.out.println("Awaiting Latch"); 
+        latch.await(20, TimeUnit.SECONDS);
 
+        System.out.println("Disposing at " + sw.elapsedTimeMillis() + " ms=" + System.currentTimeMillis()); 
+        if (sw.isRunning()) {
+          sw.stop();
+        }
+        cancellation.dispose();
+        consumer.dispose();
+    }
 }

@@ -88,11 +88,11 @@ public class SampleConsumer {
     }
 
     public static void main(String[] args) throws Exception {
-        int count = 20;
+        int count = 20000000;
         CountDownLatch latch = new CountDownLatch(count);
         SampleConsumer consumer = new SampleConsumer(BOOTSTRAP_SERVERS);
         Cancellation cancellation = consumer.consumeMessages(TOPIC, latch);
-        latch.await(10, TimeUnit.SECONDS);
+        latch.await(100, TimeUnit.SECONDS);
         cancellation.dispose();
     }
 
