@@ -34,4 +34,8 @@ See [reactor-kafka-samples/src/main/java/reactor/kafka/samples/SampleConsumer.ja
 1. Update BOOTSTRAP_SERVERS and TOPIC in SampleConsumer.java if required
 2.  Run reactor.kafka.samples.SampleConsumer (eg. from IDE as a Java application))
 
+#### To run GemFire sample consumer ####
+1. Do all of the above except do not start SampleConsumer
+2. Start a GemFire cluster with default ports with a region named regionA
+3. Run reactor.kafka.samples.SampleGemFireConsumer (eg. from IDE as a Java application))
 

@@ -11,8 +11,8 @@ public class CustomExecutor extends ThreadPoolExecutor {
   private StopWatch sw = new StopWatch();
   private Consumer consumerCallback;
 
-  public CustomExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> workQueue) {
-    super(corePoolSize, maximumPoolSize, keepAliveTime, unit, workQueue);
+  public CustomExecutor(int corePoolSize, int maximumPoolSize, long keepAliveTime, TimeUnit unit, BlockingQueue<Runnable> blockingQueue) {
+    super(corePoolSize, maximumPoolSize, keepAliveTime, unit, blockingQueue);
   }
 
   @Override

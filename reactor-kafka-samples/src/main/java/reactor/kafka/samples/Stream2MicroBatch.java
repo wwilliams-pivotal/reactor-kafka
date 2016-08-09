@@ -19,8 +19,7 @@ public class Stream2MicroBatch {
   private int recordThreshhold = 10000;
 
   private AtomicInteger recordCount = new AtomicInteger(0);
-  Integer threadCounter = 0;
-  BlockingQueue<Runnable> blockingQueue = new LinkedBlockingQueue<Runnable>();
+  private BlockingQueue<Runnable> blockingQueue = new LinkedBlockingQueue<>();
 
   /* start with a single thread and let it go up from there */
   CustomExecutor executor = new CustomExecutor(1, 20, 5000, TimeUnit.MILLISECONDS, blockingQueue);
@@ -80,20 +79,21 @@ public class Stream2MicroBatch {
       sw.start();
       isFirstKey = false;
     }
-    
+
+    buffers[bufferIx].put(key, value);
+
     /*
      * submit microbatch every second or record count threshold
      */
     if (recordCount.incrementAndGet() >= recordThreshhold || sw.elapsedTimeMillis() > 1000) {
       submitMicrobatch();
-      isFirstKey = true;
     }
-    buffers[bufferIx].put(key, value);
   }
   
   /*
    * release the microbatch to send to GemFire
    */
+  @SuppressWarnings("unchecked")
   private void submitMicrobatch() {
     bufferIx = bufferCount.get();
     System.out.println("writing " + firstKey + " and bufferIx=" + bufferIx);
@@ -109,6 +109,7 @@ public class Stream2MicroBatch {
       bufferCount.set(0);
       bufferIx = 0;
     }
+    isFirstKey = true;
   }
   
   public void dispose() {
