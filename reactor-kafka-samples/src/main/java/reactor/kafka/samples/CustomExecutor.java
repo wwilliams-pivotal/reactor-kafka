@@ -27,7 +27,7 @@ public class CustomExecutor extends ThreadPoolExecutor {
     if (t != null) {
       System.out.println("Perform exception handler logic");
     }
-    System.out.println("Perform afterExecute() logic. Time=" + System.currentTimeMillis());
+//    System.out.println("Perform afterExecute() logic. Time=" + System.currentTimeMillis());
   }
 
   public void setConsumerCallback(Consumer consumerCallback) {

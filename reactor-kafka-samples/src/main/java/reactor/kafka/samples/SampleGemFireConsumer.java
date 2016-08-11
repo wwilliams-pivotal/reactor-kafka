@@ -103,8 +103,7 @@ public class SampleGemFireConsumer implements Consumer {
         return kafkaFlux.subscribe(message -> {
                ConsumerOffset offset = message.consumerOffset();
                 ConsumerRecord<Integer, String> record = message.consumerRecord();
-                
-               
+
 				/*
 				 * Write to GemFire
 				 */
@@ -145,7 +144,7 @@ public class SampleGemFireConsumer implements Consumer {
      * In this way you do not replay these keys if you have to replay.
      */
     public void callback(Set<String> keysWritten) {
-      System.out.println("Wrote " + keysWritten.size() + " records");
+      System.out.println("Consumer callback: received " + keysWritten.size() + " keys");
     }
 
     public static void main(String[] args) throws Exception {
