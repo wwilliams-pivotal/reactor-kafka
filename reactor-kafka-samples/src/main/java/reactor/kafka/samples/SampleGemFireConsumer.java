@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.serialization.IntegerDeserializer;
+import org.apache.kafka.common.serialization.LongDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +56,7 @@ public class SampleGemFireConsumer implements Consumer {
     private static final String BOOTSTRAP_SERVERS = "localhost:9092";
     private static final String TOPIC = "demo-topic";
 
-    private final FluxConfig<Integer, String> fluxConfig;
+    private final FluxConfig<String, Long> fluxConfig;
     private final SimpleDateFormat dateFormat;
 
     ApplicationContext context = new ClassPathXmlApplicationContext("cache-config.xml");
@@ -77,8 +77,8 @@ public class SampleGemFireConsumer implements Consumer {
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         props.put(ConsumerConfig.CLIENT_ID_CONFIG, "sample-consumer");
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "sample-group");
-        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class);
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, LongDeserializer.class);
 
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         fluxConfig = new FluxConfig<>(props);
@@ -90,7 +90,7 @@ public class SampleGemFireConsumer implements Consumer {
     public Cancellation consumeMessages(String topic, CountDownLatch latch) {
       System.out.println("In consumeMessages");
 
-        KafkaFlux<Integer, String> kafkaFlux =
+        KafkaFlux<String, Long> kafkaFlux =
                 KafkaFlux.listenOn(fluxConfig, Collections.singleton(topic))
                          .doOnPartitionsAssigned(partitions -> log.debug("onPartitionsAssigned {}", partitions))
                          .doOnPartitionsRevoked(partitions -> log.debug("onPartitionsRevoked {}", partitions));
@@ -102,7 +102,7 @@ public class SampleGemFireConsumer implements Consumer {
 
         return kafkaFlux.subscribe(message -> {
                ConsumerOffset offset = message.consumerOffset();
-                ConsumerRecord<Integer, String> record = message.consumerRecord();
+                ConsumerRecord<String, Long> record = message.consumerRecord();
 
 				/*
 				 * Write to GemFire
@@ -115,7 +115,7 @@ public class SampleGemFireConsumer implements Consumer {
           }
 //          Integer recordKey = record.key() % 100;
           reactiveGemFireWriter.put(record.key().toString(), record.value());
-          if (record.key() % 10000 == 0) {
+          if (recordCount % 10000 == 0) {
             long elapsedMillis = System.currentTimeMillis() - firstTimingMillis;
             double throughputRate = recordCount * 1000 / elapsedMillis;
             System.out.printf("Received message: topic-partition=%s offset=%d timestamp=%s key=%d value=%s rate=%s count=%d millis=%d\n",

@@ -69,7 +69,8 @@ public class Stream2MicroBatch {
    * put a record and create a microbatch for execution when puts exceed either size or time
    */
   @SuppressWarnings("unchecked")
-  public void put(String key, String value) {
+  //public void put(String key, String value) {
+  public void put(String key, Long value) {
 
     /*
      * capture first key to identify the name of the batch we are collecting
@@ -115,4 +116,5 @@ public class Stream2MicroBatch {
   public void dispose() {
     executor.shutdown();
   }
+
 }

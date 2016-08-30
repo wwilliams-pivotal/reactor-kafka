@@ -1,1 +1,1 @@
-include 'reactor-kafka-api', 'reactor-kafka-tools', 'reactor-kafka-samples'
+include 'reactor-kafka-api', 'reactor-kafka-tools', 'reactor-kafka-samples', 'iddd_tradercommon', 'iddd_nanotrader', 'iddd_algotrader', 'iddd_nanoreports'
